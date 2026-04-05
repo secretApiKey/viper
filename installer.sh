@@ -874,9 +874,11 @@ EOF
 enable_services() {
     systemctl daemon-reload
     systemctl disable --now sslh >/dev/null 2>&1 || true
-    systemctl enable cron nginx xray squid stunnel4 ErwanTCP ErwanTLS ErwanWS ErwanDNS ErwanDNSTT udp badvpn-udpgw ddos erwanssh >/dev/null 2>&1 || true
     systemctl disable --now juanmux >/dev/null 2>&1 || true
-    systemctl enable openvpn-server@tcp openvpn-server@udp >/dev/null 2>&1 || true
+    for service in cron nginx xray squid stunnel4 ErwanTCP ErwanTLS ErwanWS ErwanDNS ErwanDNSTT udp badvpn-udpgw ddos erwanssh; do
+        systemctl enable "$service" >/dev/null
+    done
+    systemctl enable openvpn-server@tcp openvpn-server@udp >/dev/null
 }
 
 run_component_setups() {
@@ -889,8 +891,39 @@ run_component_setups() {
 
 start_services() {
     for service in cron ssh erwanssh xray nginx squid stunnel4 ErwanTCP ErwanTLS ErwanWS ErwanDNS ErwanDNSTT udp badvpn-udpgw ddos openvpn-server@tcp openvpn-server@udp; do
-        systemctl restart "$service" >/dev/null 2>&1 || true
+        systemctl restart "$service" >/dev/null
     done
+}
+
+verify_install_artifacts() {
+    local missing=0
+    local required_paths=(
+        "$TARGET_DIR/ErwanMenu"
+        "$TARGET_DIR/ErwanTCP"
+        "$TARGET_DIR/ErwanWS"
+        "$TARGET_DIR/ErwanDNS"
+        "$TARGET_DIR/ErwanXRAY"
+        "/etc/systemd/system/xray.service"
+        "/etc/systemd/system/erwanssh.service"
+        "/etc/systemd/system/udp.service"
+        "/lib/systemd/system/badvpn-udpgw.service"
+        "/lib/systemd/system/ErwanWS.service"
+        "/lib/systemd/system/ErwanDNS.service"
+        "/lib/systemd/system/ErwanDNSTT.service"
+        "/usr/bin/menu"
+    )
+
+    for path in "${required_paths[@]}"; do
+        if [ ! -e "$path" ]; then
+            echo "Missing required install artifact: $path"
+            missing=1
+        fi
+    done
+
+    if [ "$missing" -ne 0 ]; then
+        echo "Installer stopped because one or more required files or units were not created."
+        exit 1
+    fi
 }
 
 main() {
@@ -920,6 +953,7 @@ main() {
     write_ddos_unit
     write_profile_banner
     write_cron
+    verify_install_artifacts
     enable_services
     start_services
     echo "NewScript installer completed."
