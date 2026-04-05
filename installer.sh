@@ -116,7 +116,7 @@ install_packages() {
     apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
         autoconf automake build-essential certbot cmake conntrack cron curl dnsutils dos2unix git golang jq libpam0g-dev \
         libssl-dev libtool nginx openvpn openssl pkg-config python3 python3-pam python3-pip \
-        screenfetch squid sslh stunnel4 unzip wget zlib1g-dev
+        screenfetch squid sslh stunnel4 unzip wget zlib1g-dev expect
 }
 
 validate_domain_inputs() {
