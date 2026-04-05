@@ -6,6 +6,18 @@ TARGET_DIR="${TARGET_DIR:-/etc/ErwanScript}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 XRAY_MENU_DIR="$TARGET_DIR/XrayMenu"
 
+extract_erwanssh_zip() {
+    local zip_file="$1"
+    local dest_dir="$2"
+    local unzip_rc=0
+
+    unzip -oq "$zip_file" -d "$dest_dir" || unzip_rc=$?
+    if [ "$unzip_rc" -gt 1 ]; then
+        echo "Failed to unpack $zip_file"
+        return "$unzip_rc"
+    fi
+}
+
 mkdir -p "$TARGET_DIR"
 mkdir -p "$XRAY_MENU_DIR"
 
@@ -36,7 +48,7 @@ fi
 if [ -f "$SCRIPT_DIR/ErwanSSH.zip" ]; then
     rm -rf "$TARGET_DIR/ErwanSSH"
     mkdir -p "$TARGET_DIR/ErwanSSH"
-    unzip -oq "$SCRIPT_DIR/ErwanSSH.zip" -d "$TARGET_DIR/ErwanSSH"
+    extract_erwanssh_zip "$SCRIPT_DIR/ErwanSSH.zip" "$TARGET_DIR/ErwanSSH"
     find "$TARGET_DIR/ErwanSSH" -type d -exec chmod 0755 {} \;
     find "$TARGET_DIR/ErwanSSH" -type f -exec chmod 0644 {} \;
     find "$TARGET_DIR/ErwanSSH/bin" "$TARGET_DIR/ErwanSSH/libexec" "$TARGET_DIR/ErwanSSH/sbin" -type f -exec chmod 0755 {} \; 2>/dev/null || true
