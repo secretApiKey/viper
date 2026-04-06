@@ -48,6 +48,28 @@ pause() {
     read -r -p "Press Enter to continue..." _
 }
 
+read_server_domain() {
+    local domain=""
+    if [ -f /etc/ErwanScript/domain ]; then
+        domain="$(cat /etc/ErwanScript/domain 2>/dev/null || echo "")"
+    fi
+    if [ -z "$domain" ] && [ -f "$SERVER_INFO_FILE" ] && command -v jq >/dev/null 2>&1; then
+        domain="$(jq -r '.domain // empty' "$SERVER_INFO_FILE" 2>/dev/null)"
+    fi
+    printf '%s' "$domain"
+}
+
+read_server_ip() {
+    local ip=""
+    if [ -f "$SERVER_INFO_FILE" ] && command -v jq >/dev/null 2>&1; then
+        ip="$(jq -r '.ip_host // empty' "$SERVER_INFO_FILE" 2>/dev/null)"
+    fi
+    if [ -z "$ip" ]; then
+        ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+    fi
+    printf '%s' "$ip"
+}
+
 open_menu_screen() {
     local title="${1:-Erwan Menu}"
     local frame
@@ -174,10 +196,8 @@ create_xray_user_record() {
     mkdir -p "$(dirname "$XRAY_EXPIRY_FILE")"
     echo "$username $expiry" >> "$XRAY_EXPIRY_FILE"
     systemctl restart xray
-
-    echo "Xray user created."
-    echo "Xray UUID : $uuid"
-    echo "Xray Expiry : $expiry"
+    XRAY_LAST_UUID="$uuid"
+    XRAY_LAST_EXPIRY="$expiry"
 }
 
 list_xray_users() {
@@ -294,6 +314,7 @@ sync_user_expiry_file() {
 
 create_user() {
     local username password days expiry mode create_ssh=0 create_xray=0
+    local ssh_created=0 xray_created=0 xray_uuid="" domain="" ip_host=""
     echo "Create Mode"
     echo "1. SSH/OVPN only"
     echo "2. Xray only"
@@ -340,11 +361,49 @@ create_user() {
         useradd -m -s /bin/bash -e "$expiry" "$username"
         echo "${username}:${password}" | chpasswd
         sync_user_expiry_file "$username"
-        echo "SSH/OVPN user created."
-        echo "SSH/OVPN Expiry : $expiry"
+        ssh_created=1
     fi
     if [ "$create_xray" -eq 1 ]; then
+        XRAY_LAST_UUID=""
+        XRAY_LAST_EXPIRY=""
         create_xray_user_record "$username" "$days" || return
+        xray_created=1
+        xray_uuid="$XRAY_LAST_UUID"
+        if [ -z "$expiry" ]; then
+            expiry="$XRAY_LAST_EXPIRY"
+        fi
+    fi
+
+    domain="$(read_server_domain)"
+    ip_host="$(read_server_ip)"
+
+    if [ "$ssh_created" -eq 1 ] && [ "$xray_created" -eq 1 ]; then
+        echo "User created successfully."
+        [ -n "$domain" ] && echo "Domain : $domain"
+        [ -n "$ip_host" ] && echo "IP : $ip_host"
+        echo "Xray UUID : $xray_uuid"
+        echo "Username : $username"
+        echo "Password : $password"
+        echo "Expiry : $expiry"
+    elif [ "$ssh_created" -eq 1 ]; then
+        echo "SSH/OVPN user created."
+        echo "Username : $username"
+        echo "Password : $password"
+        echo "Expiry : $expiry"
+    elif [ "$xray_created" -eq 1 ]; then
+        echo "Xray user created."
+        echo "Username : $username"
+        echo "Expiry : $expiry"
+        echo "Xray UUID : $xray_uuid"
+    fi
+
+    if [ "$ssh_created" -ne 1 ] || [ "$xray_created" -ne 1 ]; then
+        if [ -n "$domain" ]; then
+            echo "Domain : $domain"
+        fi
+        if [ -n "$ip_host" ]; then
+            echo "IP : $ip_host"
+        fi
     fi
 }
 
