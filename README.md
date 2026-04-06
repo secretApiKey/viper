@@ -7,8 +7,9 @@
 ```bash
 cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/main.zip -o viper.zip && unzip -o viper.zip && cd viper-main/2026ScriptErwan && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
+### Tested Install
 
-```bash tested
+```bash
 cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/main.zip -o viper.zip && unzip -o viper.zip && cd viper-main && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
 
