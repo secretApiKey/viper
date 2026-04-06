@@ -116,6 +116,7 @@ install_packages() {
     apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
         autoconf automake build-essential certbot cmake conntrack cron curl dnsutils dos2unix git golang jq libpam0g-dev \
         libssl-dev libtool nginx openvpn openssl pkg-config python3 python3-pam python3-pip \
+        iptables \
         screenfetch squid sslh stunnel4 unzip wget zlib1g-dev expect
 }
 
@@ -400,6 +401,52 @@ EOF
         iptables -t nat -A POSTROUTING -s 10.8.0.0/20 -o "$outbound_if" -j MASQUERADE
     iptables -t nat -C POSTROUTING -s 10.9.0.0/20 -o "$outbound_if" -j MASQUERADE 2>/dev/null || \
         iptables -t nat -A POSTROUTING -s 10.9.0.0/20 -o "$outbound_if" -j MASQUERADE
+
+    cat > /usr/local/bin/erwan-openvpn-nat <<EOF
+#!/bin/bash
+set -euo pipefail
+
+outbound_if="\$(ip route show default 2>/dev/null | awk '/default/ {print \$5; exit}')"
+if [ -z "\$outbound_if" ]; then
+    outbound_if="\$(ip -o route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if (\$i == "dev") {print \$(i+1); exit}}')"
+fi
+
+[ -n "\$outbound_if" ] || exit 0
+
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+
+iptables -C FORWARD -s 10.8.0.0/20 -j ACCEPT 2>/dev/null || iptables -A FORWARD -s 10.8.0.0/20 -j ACCEPT
+iptables -C FORWARD -d 10.8.0.0/20 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -d 10.8.0.0/20 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -C FORWARD -s 10.9.0.0/20 -j ACCEPT 2>/dev/null || iptables -A FORWARD -s 10.9.0.0/20 -j ACCEPT
+iptables -C FORWARD -d 10.9.0.0/20 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+    iptables -A FORWARD -d 10.9.0.0/20 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -t nat -C POSTROUTING -s 10.8.0.0/20 -o "\$outbound_if" -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -s 10.8.0.0/20 -o "\$outbound_if" -j MASQUERADE
+iptables -t nat -C POSTROUTING -s 10.9.0.0/20 -o "\$outbound_if" -j MASQUERADE 2>/dev/null || \
+    iptables -t nat -A POSTROUTING -s 10.9.0.0/20 -o "\$outbound_if" -j MASQUERADE
+EOF
+    sed -i 's/\r$//' /usr/local/bin/erwan-openvpn-nat
+    chmod 0755 /usr/local/bin/erwan-openvpn-nat
+
+    cat > /etc/systemd/system/erwan-openvpn-nat.service <<'EOF'
+[Unit]
+Description=Restore ErwanScript OpenVPN NAT rules
+After=network-online.target openvpn-server@tcp.service openvpn-server@udp.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/erwan-openvpn-nat
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sed -i 's/\r$//' /etc/systemd/system/erwan-openvpn-nat.service
+
+    systemctl daemon-reload
+    systemctl enable --now erwan-openvpn-nat.service >/dev/null 2>&1 || true
 }
 
 build_erwanssh_runtime() {
