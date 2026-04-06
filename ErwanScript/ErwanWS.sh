@@ -346,6 +346,7 @@ async def tunnel(client_reader, client_writer, backend_host, backend_port, mode,
     await client_writer.drain()
     if backend_port == ovpn_port and initial_data:
         initial_data = initial_data.lstrip(b"\r\n")
+
     if initial_data:
         server_writer.write(initial_data)
         await server_writer.drain()
