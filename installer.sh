@@ -451,7 +451,6 @@ EOF
 
 build_erwanssh_runtime() {
     local mode="$BUILD_ERWANSSH_RUNTIME"
-    local bundled_runtime="${SCRIPT_DIR}/ErwanSSH"
     local bundled_runtime_zip="${SCRIPT_DIR}/ErwanSSH.zip"
 
     if [ "$mode" = "0" ] || [ "$mode" = "false" ] || [ "$mode" = "no" ]; then
@@ -459,15 +458,13 @@ build_erwanssh_runtime() {
         return 0
     fi
 
-    if [ "$mode" = "auto" ] && { [ -f "$bundled_runtime_zip" ] || [ -d "$bundled_runtime" ]; }; then
+    if [ "$mode" = "auto" ] && [ -f "$bundled_runtime_zip" ]; then
         echo "Bundled ErwanSSH runtime found; skipping rebuild."
         return 0
     fi
 
-    if [ -x "$SCRIPT_DIR/ScriptSSH/build-erwanssh-runtime.sh" ]; then
-        TARGET_DIR="$TARGET_DIR" bash "$SCRIPT_DIR/ScriptSSH/build-erwanssh-runtime.sh" || \
-            echo "ErwanSSH runtime build failed; keeping bundled ErwanSSH runtime."
-    fi
+    echo "ErwanSSH runtime rebuild helpers are not bundled in this installer copy."
+    echo "Use the SafeFolder dev tools if you need to rebuild the SSH runtime."
 }
 
 write_nginx_base() {
