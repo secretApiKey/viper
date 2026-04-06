@@ -29,18 +29,6 @@ install -m 0755 "$SCRIPT_DIR/ErwanScript/ErwanTCP.sh" "$TARGET_DIR/ErwanTCP"
 install -m 0755 "$SCRIPT_DIR/ErwanScript/ErwanTLS.sh" "$TARGET_DIR/ErwanTLS"
 install -m 0755 "$SCRIPT_DIR/ErwanScript/ErwanDNS.sh" "$TARGET_DIR/ErwanDNS"
 install -m 0755 "$SCRIPT_DIR/ErwanScript/ErwanUDP-auth.sh" "$TARGET_DIR/ErwanUDP-auth"
-if [ -f "$SCRIPT_DIR/ScriptSSH/build-erwanssh-runtime.sh" ]; then
-    install -m 0755 "$SCRIPT_DIR/ScriptSSH/build-erwanssh-runtime.sh" "$TARGET_DIR/build-erwanssh-runtime.sh"
-fi
-if [ -f "$SCRIPT_DIR/ScriptSSH/verify-erwanssh-runtime.sh" ]; then
-    install -m 0755 "$SCRIPT_DIR/ScriptSSH/verify-erwanssh-runtime.sh" "$TARGET_DIR/verify-erwanssh-runtime.sh"
-fi
-if [ -f "$SCRIPT_DIR/ScriptSSH/export-erwanssh-runtime.sh" ]; then
-    install -m 0755 "$SCRIPT_DIR/ScriptSSH/export-erwanssh-runtime.sh" "$TARGET_DIR/export-erwanssh-runtime.sh"
-fi
-if [ -f "$SCRIPT_DIR/ScriptSSH/import-erwanssh-runtime.sh" ]; then
-    install -m 0755 "$SCRIPT_DIR/ScriptSSH/import-erwanssh-runtime.sh" "$TARGET_DIR/import-erwanssh-runtime.sh"
-fi
 install -m 0755 "$SCRIPT_DIR/uninstall.sh" "$TARGET_DIR/uninstall.sh"
 if [ -f "$SCRIPT_DIR/limit-useradd.sh" ]; then
     install -m 0755 "$SCRIPT_DIR/limit-useradd.sh" "$TARGET_DIR/limit-useradd.sh"
@@ -54,15 +42,8 @@ if [ -f "$SCRIPT_DIR/ErwanSSH.zip" ]; then
     find "$TARGET_DIR/ErwanSSH/bin" "$TARGET_DIR/ErwanSSH/libexec" "$TARGET_DIR/ErwanSSH/sbin" -type f -exec chmod 0755 {} \; 2>/dev/null || true
     find "$TARGET_DIR/ErwanSSH/etc" -maxdepth 1 -type f -name 'ssh_host_*_key' -exec chmod 0600 {} \; 2>/dev/null || true
     find "$TARGET_DIR/ErwanSSH/etc" -maxdepth 1 -type f -name 'ssh_host_*.pub' -exec chmod 0644 {} \; 2>/dev/null || true
-elif [ -d "$SCRIPT_DIR/ErwanSSH" ]; then
-    rm -rf "$TARGET_DIR/ErwanSSH"
-    mkdir -p "$TARGET_DIR/ErwanSSH"
-    cp -a "$SCRIPT_DIR/ErwanSSH/." "$TARGET_DIR/ErwanSSH/"
-    find "$TARGET_DIR/ErwanSSH" -type d -exec chmod 0755 {} \;
-    find "$TARGET_DIR/ErwanSSH" -type f -exec chmod 0644 {} \;
-    find "$TARGET_DIR/ErwanSSH/bin" "$TARGET_DIR/ErwanSSH/libexec" "$TARGET_DIR/ErwanSSH/sbin" -type f -exec chmod 0755 {} \; 2>/dev/null || true
-    find "$TARGET_DIR/ErwanSSH/etc" -maxdepth 1 -type f -name 'ssh_host_*_key' -exec chmod 0600 {} \; 2>/dev/null || true
-    find "$TARGET_DIR/ErwanSSH/etc" -maxdepth 1 -type f -name 'ssh_host_*.pub' -exec chmod 0644 {} \; 2>/dev/null || true
+else
+    echo "WARNING: ErwanSSH.zip not found in $SCRIPT_DIR; skipping bundled ErwanSSH runtime install." >&2
 fi
 
 for helper in xray-menu.sh add-xray-user.sh remove-xray-user.sh list-xray-users.sh \
