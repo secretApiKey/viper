@@ -17,7 +17,7 @@ PAYLOAD_BACKEND_HOST="${PAYLOAD_BACKEND_HOST:-127.0.0.1}"
 PAYLOAD_BACKEND_PORT="${PAYLOAD_BACKEND_PORT:-4443}"
 DOMAIN_FILE="${DOMAIN_FILE:-/etc/ErwanScript/domain}"
 WS_RESPONSE_FILE="${WS_RESPONSE_FILE:-/etc/ErwanScript/ws-response.txt}"
-DEFAULT_WS_RESPONSE="<b><font color='#ff69b4'>CODEPINK</font> <font color='blue'>Protocol</font></b>"
+DEFAULT_WS_RESPONSE="<b><font color='red'>VIPER</font> <font color='green'>Panel</font></b>"
 
 load_ws_response() {
     if [ -f "$WS_RESPONSE_FILE" ] && [ -s "$WS_RESPONSE_FILE" ]; then
@@ -95,16 +95,93 @@ try:
 except OSError:
     domain_name = ""
 
-body = f"""<h6 style="text-align:center">
-<br>
-********************************<br>
-<br>
-{brand_top} <br>
-{brand_bottom}<br>
-<br>
-********************************<br>
-</h6>
-<br>
+play_store_url = "https://play.google.com/store/apps/details?id=com.viper.panel&pcampaignid=web_share"
+body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{brand_top}</title>
+<style>
+    * {{
+        box-sizing: border-box;
+    }}
+    body {{
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #0f2d14 0%, #16381b 45%, #1e4f24 100%);
+        color: #ecfff0;
+    }}
+    .card {{
+        width: min(100%, 460px);
+        background: rgba(9, 20, 11, 0.78);
+        border: 1px solid rgba(148, 255, 173, 0.18);
+        border-radius: 20px;
+        padding: 32px 28px;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }}
+    .eyebrow {{
+        margin: 0 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #8fe19d;
+    }}
+    h1 {{
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.1;
+        color: #ffffff;
+    }}
+    p {{
+        margin: 14px 0 0;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #d5f7db;
+    }}
+    .actions {{
+        margin-top: 26px;
+        display: flex;
+        justify-content: center;
+    }}
+    .button {{
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 22px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 15px;
+        color: #103517;
+        background: linear-gradient(90deg, #8cf59e 0%, #55da6f 100%);
+        box-shadow: 0 14px 30px rgba(85, 218, 111, 0.28);
+    }}
+    .meta {{
+        margin-top: 18px;
+        font-size: 13px;
+        color: #9ed7a8;
+    }}
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="eyebrow">Erwan Viper Panel</div>
+    <h1>VIPER PANEL</h1>
+    <p>Download the Android app to create a solo accounts.</p>
+    <div class="actions">
+        <a class="button" href="{play_store_url}" target="_blank" rel="noopener noreferrer">Download on Google Play</a>
+    </div>
+    <div class="meta">{domain_name or "Server landing page"}</div>
+</div>
+</body>
+</html>
 """
 
 allowed_hosts = {
