@@ -10,7 +10,7 @@ cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/mai
 ### Tested Install
 
 ```bash
-cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/main.zip -o viper.zip && unzip -o viper.zip && cd viper-main && chmod +x installer.sh install-components.sh && bash installer.sh
+apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/main.zip -o viper.zip && unzip -o viper.zip && cd viper-main && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
 
 ### Manual Install
