@@ -13,6 +13,12 @@ cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/mai
 apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L https://github.com/secretApiKey/viper/archive/refs/heads/main.zip -o viper.zip && unzip -o viper.zip && cd viper-main && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
 
+### Tested Install With token
+
+```bash
+apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L -H "Authorization: token YOUR_GITHUB_TOKEN" https://api.github.com/repos/secretApiKey/viper/zipball -o viper.zip && unzip -o viper.zip && cd viper-* && chmod +x installer.sh install-components.sh && bash installer.sh
+```
+
 ### Manual Install
 
 ```bash
