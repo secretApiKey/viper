@@ -16,7 +16,7 @@ apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L h
 ### Tested Install With token
 
 ```bash
-apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L -H "Authorization: token YOUR_GITHUB_TOKEN" https://api.github.com/repos/secretApiKey/viper/zipball -o viper.zip && unzip -o viper.zip && cd viper-* && chmod +x installer.sh install-components.sh && bash installer.sh
+apt update && apt install -y unzip curl ca-certificates && cd /root && curl -L -H "Authorization: token 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" https://api.github.com/repos/secretApiKey/viper/zipball -o viper.zip && unzip -o viper.zip && cd viper-* && chmod +x installer.sh install-components.sh && bash installer.sh
 ```
 
 ### Manual Install
