@@ -78,6 +78,7 @@ echo "$user $exp" >> "$EXP_FILE"
 
 systemctl restart xray
 
+vless_direct_link="vless://${uuid}@${public_host}:8443?encryption=none&security=tls&sni=${public_host}&allowInsecure=1#VLESS-DIRECT-${user}"
 vless_link="vless://${uuid}@${public_host}:443?encryption=none&type=ws&security=tls&host=${public_host}&path=%2Fvless&sni=${public_host}&allowInsecure=1#VLESS-${user}"
 vless_ntls_link="vless://${uuid}@${public_host}:80?encryption=none&type=ws&security=none&host=${public_host}&path=%2Fvless#VLESS-NTLS-${user}"
 vless_hu_link="vless://${uuid}@${public_host}:443?encryption=none&type=httpupgrade&security=tls&host=${public_host}&path=%2Fvless-hu&sni=${public_host}&allowInsecure=1#VLESS-HU-${user}"
@@ -96,7 +97,10 @@ vmess_json=$(jq -nc --arg user "$user" --arg uuid "$uuid" --arg host "$public_ho
   path: "/vmess",
   tls: "tls",
   sni: $host,
-  verify_cert: false
+  verify_cert: false,
+  allowInsecure: 1,
+  insecure: true,
+  skip_cert_verify: true
 }')
 vmess_link="vmess://$(printf '%s' "$vmess_json" | base64 | tr -d '\n')"
 vmess_ntls_json=$(jq -nc --arg user "$user" --arg uuid "$uuid" --arg host "$public_host" '{
@@ -129,7 +133,10 @@ vmess_hu_json=$(jq -nc --arg user "$user" --arg uuid "$uuid" --arg host "$public
   path: "/vmess-hu",
   tls: "tls",
   sni: $host,
-  verify_cert: false
+  verify_cert: false,
+  allowInsecure: 1,
+  insecure: true,
+  skip_cert_verify: true
 }')
 vmess_hu_link="vmess://$(printf '%s' "$vmess_hu_json" | base64 | tr -d '\n')"
 vmess_hu_ntls_json=$(jq -nc --arg user "$user" --arg uuid "$uuid" --arg host "$public_host" '{
@@ -152,10 +159,10 @@ trojan_link="trojan://${uuid}@${public_host}:443?type=ws&security=tls&sni=${publ
 trojan_ntls_link="trojan://${uuid}@${public_host}:80?type=ws&security=none&host=${public_host}&path=%2Ftrojan-ws#TROJAN-NTLS-${user}"
 trojan_hu_link="trojan://${uuid}@${public_host}:443?type=httpupgrade&security=tls&sni=${public_host}&host=${public_host}&path=%2Ftrojan-hu&allowInsecure=1#TROJAN-HU-${user}"
 trojan_hu_ntls_link="trojan://${uuid}@${public_host}:80?type=httpupgrade&security=none&host=${public_host}&path=%2Ftrojan-hu#TROJAN-HU-NTLS-${user}"
-ss_userinfo_b64=$(printf '%s' "aes-128-gcm:${uuid}@${public_host}:443" | base64 | tr -d '\n')
-ss_plugin_opts="v2ray-plugin%3Bmode%3Dwebsocket%3Btls%3Bhost%3D${public_host}%3Bpath%3D%2Fss-ws"
-ss_link="ss://${ss_userinfo_b64}/?plugin=${ss_plugin_opts}#SS-${user}"
-ss_legacy_link="ss://$(printf '%s' "aes-128-gcm:${uuid}" | base64 | tr -d '\n')@${public_host}:443/?plugin=${ss_plugin_opts}#SS-LEGACY-${user}"
+ss_userinfo_b64=$(printf '%s' "aes-128-gcm:${uuid}" | base64 | tr -d '\n')
+ss_plugin_opts="v2ray-plugin%3Bmode%3Dwebsocket%3Btls%3Bhost%3D${public_host}%3Bpath%3D%2Fss-ws%3BallowInsecure%3D1"
+ss_link="ss://${ss_userinfo_b64}@${public_host}:443/?plugin=${ss_plugin_opts}#SS-${user}"
+ss_compat_link="ss://$(printf '%s' "aes-128-gcm:${uuid}@${public_host}:443" | base64 | tr -d '\n')/?plugin=${ss_plugin_opts}#SS-COMPAT-${user}"
 
 echo ""
 echo "User Created Successfully"
@@ -166,6 +173,8 @@ echo "UUID : $uuid"
 echo "Expiry : $exp"
 if [ -n "$vless_link" ]; then
     echo ""
+    echo "VLESS Direct TLS:"
+    echo "$vless_direct_link"
     echo "VLESS Config:"
     echo "$vless_link"
     echo "VLESS Non-TLS:"
@@ -208,13 +217,13 @@ if [ -n "$ss_link" ]; then
     echo ""
     echo "SHADOWSOCKS Config:"
     echo "$ss_link"
-    echo "SHADOWSOCKS Legacy Config:"
-    echo "$ss_legacy_link"
+    echo "SHADOWSOCKS Compat Config:"
+    echo "$ss_compat_link"
     echo "SHADOWSOCKS Manual:"
     echo "Server : $public_host"
     echo "Port : 443"
     echo "Method : aes-128-gcm"
     echo "Password : $uuid"
     echo "Plugin : v2ray-plugin"
-    echo "Plugin opts : mode=websocket;tls;host=${public_host};path=/ss-ws"
+    echo "Plugin opts : mode=websocket;tls;host=${public_host};path=/ss-ws;allowInsecure=1"
 fi
