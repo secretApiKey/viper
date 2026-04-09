@@ -13,6 +13,20 @@ DNSTT_UNIT="${DNSTT_UNIT:-/lib/systemd/system/ErwanDNSTT.service}"
 DEFAULT_SERVER_KEY="${DEFAULT_SERVER_KEY:-7f56d5366a659d30198b6fb29e8e010317c26b30bcf42c952eb3bbe366fe62e8}"
 DEFAULT_SERVER_PUB="${DEFAULT_SERVER_PUB:-b7c0d9a1ca1f1e41f02a3dcc3318d969661037315d46cba3ba2e0e0215d4092e}"
 
+ensure_dns_forwarding() {
+    local iptables_bin="/usr/sbin/iptables"
+
+    [ -x "$iptables_bin" ] || iptables_bin="$(command -v iptables 2>/dev/null || true)"
+    [ -n "$iptables_bin" ] || return 0
+
+    "$iptables_bin" -C INPUT -p udp --dport 5300 -j ACCEPT >/dev/null 2>&1 || \
+        "$iptables_bin" -I INPUT -p udp --dport 5300 -j ACCEPT
+    "$iptables_bin" -C INPUT -p udp --dport 53 -j ACCEPT >/dev/null 2>&1 || \
+        "$iptables_bin" -I INPUT -p udp --dport 53 -j ACCEPT
+    "$iptables_bin" -t nat -C PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300 >/dev/null 2>&1 || \
+        "$iptables_bin" -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300
+}
+
 write_dns_units() {
     cat > "$DNS_UNIT" <<'EOF'
 [Unit]
@@ -35,6 +49,8 @@ EOF
 Description=DNSTT Server
 After=network-online.target
 Wants=network-online.target
+Requires=ErwanDNS.service
+After=ErwanDNS.service
 
 [Service]
 User=root
@@ -59,6 +75,7 @@ install_mode() {
     [ -f "$SERVER_KEY" ] || echo "$DEFAULT_SERVER_KEY" > "$SERVER_KEY"
     [ -f "$SERVER_PUB" ] || echo "$DEFAULT_SERVER_PUB" > "$SERVER_PUB"
     touch "$STATUS_LOG"
+    ensure_dns_forwarding
     write_dns_units
     systemctl daemon-reload
     systemctl enable ErwanDNS >/dev/null 2>&1 || true
