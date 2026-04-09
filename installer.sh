@@ -970,10 +970,47 @@ verify_install_artifacts() {
     fi
 }
 
+ensure_swap() {
+    local swapfile="${SWAPFILE:-/swapfile}"
+    local swapsize="${SWAP_SIZE:-2G}"
+
+    if swapon --show | grep -q .; then
+        echo "Swap already enabled."
+        return 0
+    fi
+
+    if [ -f "$swapfile" ]; then
+        echo "Swap file exists, enabling it."
+        chmod 600 "$swapfile"
+        mkswap "$swapfile" >/dev/null 2>&1 || true
+        swapon "$swapfile" || true
+    else
+        echo "Creating swap file: $swapfile ($swapsize)"
+        fallocate -l "$swapsize" "$swapfile" 2>/dev/null || dd if=/dev/zero of="$swapfile" bs=1M count=2048 status=progress
+        chmod 600 "$swapfile"
+        mkswap "$swapfile"
+        swapon "$swapfile"
+    fi
+
+    grep -qE '^[^#]*\s+/swapfile\s+none\s+swap\s' /etc/fstab || \
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+    sysctl -w vm.swappiness=10 >/dev/null
+    sysctl -w vm.vfs_cache_pressure=50 >/dev/null
+
+    cat > /etc/sysctl.d/99-swap-tuning.conf <<'EOF'
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+EOF
+
+    free -m
+}
+
 main() {
     load_cloudflare_env
     load_original_cloudflare_defaults
     install_packages
+    ensure_swap
     validate_domain_inputs
     generate_cloudflare_records
     write_domain_state
