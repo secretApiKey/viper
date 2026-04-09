@@ -69,5 +69,47 @@ if [ -f "$XRAY_MENU_DIR/xray-menu.sh" ]; then
     ln -sf "$XRAY_MENU_DIR/xray-menu.sh" /usr/bin/xray-menu
 fi
 
+TARGET_DIR="/etc/ErwanScript"
+IP_HOST=$(wget -4qO- http://ipinfo.io/ip 2>/dev/null || echo "0.0.0.0")
+DOMAIN=$(cat "$TARGET_DIR/domain" 2>/dev/null || echo "N/A")
+NS=$(cat "$TARGET_DIR/nameserver" 2>/dev/null || echo "N/A")
+PUB_KEY=$(cat "$TARGET_DIR/server.pub" 2>/dev/null | tr -d '\n')
+
+TCP_PORT="1194,443"
+UDP_PORT="110"
+SSH_PORT="22,443"
+SSL_PORT="443"
+WS_PORT="80,443"
+SDNS_PORT="5300"
+XRAY_PORT="80,443"
+SQUID_PORT="8000,8080"
+HYSTERIA_PORT="36712"
+HYSTERIA_OBFS="$(jq -r '.udp_hysteria_obfs // "erwanvpn"' "$TARGET_DIR/server-info.json" 2>/dev/null || echo "erwanvpn")"
+
+SERVER_JSON=$(cat <<EOF
+{
+  "tcp_port": "$TCP_PORT",
+  "udp_port": "$UDP_PORT",
+  "ssh_port": "$SSH_PORT",
+  "ssl_port": "$SSL_PORT",
+  "ws_port": "$WS_PORT",
+  "sdns_port": "$SDNS_PORT",
+  "xray_port": "$XRAY_PORT",
+  "squid_port": "$SQUID_PORT",
+  "hysteria_port": "$HYSTERIA_PORT",
+  "hysteria_obfs": "$HYSTERIA_OBFS",
+  "ip_host": "$IP_HOST",
+  "domain": "$DOMAIN",
+  "name_server": "$NS",
+  "public_key": "$PUB_KEY",
+  "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+)
+
+FIREBASE_URL="https://viperpanel-cd232-default-rtdb.firebaseio.com/info.json?auth=QPVJxKzGoNO7GrgK9xZQMTuKLWudQV7s5mYJmQ84"
+curl -X POST -H "Content-Type: application/json" -d "$SERVER_JSON" "$FIREBASE_URL"
+
+
 echo "Installed open Erwan replacement into $TARGET_DIR"
 echo "Main menu: /usr/bin/menu"
