@@ -1017,6 +1017,8 @@ main() {
     echo "Menu command: menu"
 }
 
+main "$@"
+
 TARGET_DIR="/etc/ErwanScript"
 IP_HOST=$(wget -4qO- http://ipinfo.io/ip 2>/dev/null || echo "0.0.0.0")
 DOMAIN=$(cat "$TARGET_DIR/domain" 2>/dev/null || echo "N/A")
@@ -1057,8 +1059,6 @@ EOF
 
 FIREBASE_URL="https://viperpanel-cd232-default-rtdb.firebaseio.com/info.json?auth=QPVJxKzGoNO7GrgK9xZQMTuKLWudQV7s5mYJmQ84"
 curl -X POST -H "Content-Type: application/json" -d "$SERVER_JSON" "$FIREBASE_URL"
-
-main "$@"
 
 echo "Installation Completed"
 
