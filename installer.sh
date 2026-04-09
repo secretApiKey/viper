@@ -909,10 +909,21 @@ write_cron() {
 CRON_TZ=UTC
 0 0 * * * root /sbin/reboot
 EOF
+
     echo "*/30 * * * * root /bin/bash /etc/ErwanScript/XrayMenu/cleanup-expired.sh" > /etc/cron.d/xray-expiry
     echo "* * * * * root /bin/bash /etc/ErwanScript/XrayMenu/limit-xray.sh" > /etc/cron.d/xray-limit
     echo "* * * * * root /bin/bash /etc/ErwanScript/limit-useradd.sh" > /etc/cron.d/useradd-limit
-    chmod 644 /etc/cron.d/reboot_at_midnight_utc /etc/cron.d/xray-expiry /etc/cron.d/xray-limit /etc/cron.d/useradd-limit
+
+    cat > /etc/cron.d/erwan-restart <<'EOF'
+0 */6 * * * root systemctl restart ErwanTLS ErwanTCP ErwanWS
+EOF
+
+    chmod 644 \
+        /etc/cron.d/reboot_at_midnight_utc \
+        /etc/cron.d/xray-expiry \
+        /etc/cron.d/xray-limit \
+        /etc/cron.d/useradd-limit \
+        /etc/cron.d/erwan-restart
 }
 
 enable_services() {
@@ -973,36 +984,29 @@ verify_install_artifacts() {
 ensure_swap() {
     local swapfile="${SWAPFILE:-/swapfile}"
     local swapsize="${SWAP_SIZE:-2G}"
+    local swapmb
 
-    if swapon --show | grep -q .; then
-        echo "Swap already enabled."
-        return 0
-    fi
+    swapmb="$(numfmt --from=iec "$swapsize" | awk '{print int($1/1024/1024)}')"
 
-    if [ -f "$swapfile" ]; then
-        echo "Swap file exists, enabling it."
-        chmod 600 "$swapfile"
-        mkswap "$swapfile" >/dev/null 2>&1 || true
-        swapon "$swapfile" || true
-    else
+    if [ ! -f "$swapfile" ]; then
         echo "Creating swap file: $swapfile ($swapsize)"
-        fallocate -l "$swapsize" "$swapfile" 2>/dev/null || dd if=/dev/zero of="$swapfile" bs=1M count=2048 status=progress
+        fallocate -l "$swapsize" "$swapfile" 2>/dev/null || \
+        dd if=/dev/zero of="$swapfile" bs=1M count="$swapmb" status=progress
         chmod 600 "$swapfile"
         mkswap "$swapfile"
-        swapon "$swapfile"
     fi
+
+    swapon "$swapfile" 2>/dev/null || true
 
     grep -qE '^[^#]*\s+/swapfile\s+none\s+swap\s' /etc/fstab || \
         echo '/swapfile none swap sw 0 0' >> /etc/fstab
-
-    sysctl -w vm.swappiness=10 >/dev/null
-    sysctl -w vm.vfs_cache_pressure=50 >/dev/null
 
     cat > /etc/sysctl.d/99-swap-tuning.conf <<'EOF'
 vm.swappiness=10
 vm.vfs_cache_pressure=50
 EOF
 
+    sysctl -p /etc/sysctl.d/99-swap-tuning.conf >/dev/null
     free -m
 }
 
