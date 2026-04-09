@@ -46,6 +46,10 @@ else
     echo "WARNING: ErwanSSH.zip not found in $SCRIPT_DIR; skipping bundled ErwanSSH runtime install." >&2
 fi
 
+if [ -x "$TARGET_DIR/ErwanDNS" ]; then
+    DOMAIN_FILE="$TARGET_DIR/domain" "$TARGET_DIR/ErwanDNS" --install
+fi
+
 for helper in xray-menu.sh add-xray-user.sh remove-xray-user.sh list-xray-users.sh \
     show-xray-expiry.sh cleanup-expired.sh limit-xray.sh reset-xray-users.sh; do
     if [ -f "$SCRIPT_DIR/XrayMenu/$helper" ]; then
