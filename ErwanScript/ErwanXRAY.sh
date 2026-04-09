@@ -6,6 +6,8 @@ XRAY_VERSION="${XRAY_VERSION:-v26.3.27}"
 XRAY_CONFIG="${XRAY_CONFIG:-/etc/xray/config.json}"
 XRAY_UUID_FILE="${XRAY_UUID_FILE:-/etc/xray/uuid}"
 XRAY_SERVICE="${XRAY_SERVICE:-/etc/systemd/system/xray.service}"
+DOMAIN_FILE="${DOMAIN_FILE:-/etc/ErwanScript/domain}"
+XRAY_DIRECT_TLS_PORT="${XRAY_DIRECT_TLS_PORT:-8443}"
 XRAY_DOWNLOAD_URL="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-64.zip"
 DEFAULT_USER="${DEFAULT_USER:-default-user}"
 
@@ -24,11 +26,22 @@ if [ ! -f "$XRAY_UUID_FILE" ]; then
 fi
 
 UUID_VALUE="$(cat "$XRAY_UUID_FILE")"
+DOMAIN_NAME="$(cat "$DOMAIN_FILE" 2>/dev/null || echo "")"
+CERT_FILE="/etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem"
+KEY_FILE="/etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem"
+XRAY_CERT_FILE="/etc/xray/tls.crt"
+XRAY_KEY_FILE="/etc/xray/tls.key"
 
 touch /var/log/xray/access.log /var/log/xray/error.log
 chown -R www-data:www-data /var/log/xray
 chmod 0755 /var/log/xray
 chmod 0644 /var/log/xray/access.log /var/log/xray/error.log
+
+if [ -n "$DOMAIN_NAME" ] && [ -f "$CERT_FILE" ] && [ -f "$KEY_FILE" ]; then
+    install -m 0644 "$CERT_FILE" "$XRAY_CERT_FILE"
+    install -m 0640 "$KEY_FILE" "$XRAY_KEY_FILE"
+    chown www-data:www-data "$XRAY_CERT_FILE" "$XRAY_KEY_FILE"
+fi
 
 cat > "$XRAY_CONFIG" <<EOF
 {
@@ -46,6 +59,28 @@ cat > "$XRAY_CONFIG" <<EOF
         "address": "127.0.0.1"
       },
       "tag": "api"
+    },
+    {
+      "port": ${XRAY_DIRECT_TLS_PORT},
+      "protocol": "vless",
+      "settings": {
+        "decryption": "none",
+        "clients": [
+          { "name": "${DEFAULT_USER}", "email": "${DEFAULT_USER}", "id": "${UUID_VALUE}" }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "tls",
+        "tlsSettings": {
+          "certificates": [
+            {
+              "certificateFile": "${XRAY_CERT_FILE}",
+              "keyFile": "${XRAY_KEY_FILE}"
+            }
+          ]
+        }
+      }
     },
     {
       "port": 14016,
@@ -250,3 +285,4 @@ systemctl restart xray
 
 echo "Xray config written to $XRAY_CONFIG using the live VPS shape"
 echo "UUID saved to $XRAY_UUID_FILE"
+echo "Direct VLESS TLS is enabled on :${XRAY_DIRECT_TLS_PORT}"
