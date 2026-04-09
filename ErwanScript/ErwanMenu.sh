@@ -200,6 +200,145 @@ create_xray_user_record() {
     XRAY_LAST_EXPIRY="$expiry"
 }
 
+print_xray_client_links() {
+    local username="$1"
+    local uuid="$2"
+    local public_host="${3:-}"
+    local vmess_json vmess_link vmess_ntls_json vmess_ntls_link vmess_hu_json vmess_hu_link vmess_hu_ntls_json vmess_hu_ntls_link
+    local vless_direct_link vless_link vless_ntls_link vless_hu_link vless_hu_ntls_link
+    local trojan_link trojan_ntls_link trojan_hu_link trojan_hu_ntls_link
+    local ss_userinfo_b64 ss_plugin_opts ss_link ss_compat_link
+
+    [ -z "$public_host" ] && public_host="your-domain"
+
+    vless_direct_link="vless://${uuid}@${public_host}:8443?encryption=none&security=tls&sni=${public_host}&allowInsecure=1#VLESS-DIRECT-${username}"
+    vless_link="vless://${uuid}@${public_host}:443?encryption=none&type=ws&security=tls&host=${public_host}&path=%2Fvless&sni=${public_host}&allowInsecure=1#VLESS-${username}"
+    vless_ntls_link="vless://${uuid}@${public_host}:80?encryption=none&type=ws&security=none&host=${public_host}&path=%2Fvless#VLESS-NTLS-${username}"
+    vless_hu_link="vless://${uuid}@${public_host}:443?encryption=none&type=httpupgrade&security=tls&host=${public_host}&path=%2Fvless-hu&sni=${public_host}&allowInsecure=1#VLESS-HU-${username}"
+    vless_hu_ntls_link="vless://${uuid}@${public_host}:80?encryption=none&type=httpupgrade&security=none&host=${public_host}&path=%2Fvless-hu#VLESS-HU-NTLS-${username}"
+
+    vmess_json="$(jq -nc --arg user "$username" --arg uuid "$uuid" --arg host "$public_host" '{
+      v: "2",
+      ps: ("VMESS-" + $user),
+      add: $host,
+      port: "443",
+      id: $uuid,
+      aid: "0",
+      scy: "auto",
+      net: "ws",
+      type: "none",
+      host: $host,
+      path: "/vmess",
+      tls: "tls",
+      sni: $host,
+      verify_cert: false,
+      allowInsecure: 1,
+      insecure: true,
+      skip_cert_verify: true
+    }')"
+    vmess_link="vmess://$(printf '%s' "$vmess_json" | base64 | tr -d '\n')"
+    vmess_ntls_json="$(jq -nc --arg user "$username" --arg uuid "$uuid" --arg host "$public_host" '{
+      v: "2",
+      ps: ("VMESS-NTLS-" + $user),
+      add: $host,
+      port: "80",
+      id: $uuid,
+      aid: "0",
+      scy: "auto",
+      net: "ws",
+      type: "none",
+      host: $host,
+      path: "/vmess",
+      tls: "",
+      sni: ""
+    }')"
+    vmess_ntls_link="vmess://$(printf '%s' "$vmess_ntls_json" | base64 | tr -d '\n')"
+    vmess_hu_json="$(jq -nc --arg user "$username" --arg uuid "$uuid" --arg host "$public_host" '{
+      v: "2",
+      ps: ("VMESS-HU-" + $user),
+      add: $host,
+      port: "443",
+      id: $uuid,
+      aid: "0",
+      scy: "auto",
+      net: "httpupgrade",
+      type: "none",
+      host: $host,
+      path: "/vmess-hu",
+      tls: "tls",
+      sni: $host,
+      verify_cert: false,
+      allowInsecure: 1,
+      insecure: true,
+      skip_cert_verify: true
+    }')"
+    vmess_hu_link="vmess://$(printf '%s' "$vmess_hu_json" | base64 | tr -d '\n')"
+    vmess_hu_ntls_json="$(jq -nc --arg user "$username" --arg uuid "$uuid" --arg host "$public_host" '{
+      v: "2",
+      ps: ("VMESS-HU-NTLS-" + $user),
+      add: $host,
+      port: "80",
+      id: $uuid,
+      aid: "0",
+      scy: "auto",
+      net: "httpupgrade",
+      type: "none",
+      host: $host,
+      path: "/vmess-hu",
+      tls: "",
+      sni: ""
+    }')"
+    vmess_hu_ntls_link="vmess://$(printf '%s' "$vmess_hu_ntls_json" | base64 | tr -d '\n')"
+
+    trojan_link="trojan://${uuid}@${public_host}:443?type=ws&security=tls&sni=${public_host}&host=${public_host}&path=%2Ftrojan-ws&allowInsecure=1#TROJAN-${username}"
+    trojan_ntls_link="trojan://${uuid}@${public_host}:80?type=ws&security=none&host=${public_host}&path=%2Ftrojan-ws#TROJAN-NTLS-${username}"
+    trojan_hu_link="trojan://${uuid}@${public_host}:443?type=httpupgrade&security=tls&sni=${public_host}&host=${public_host}&path=%2Ftrojan-hu&allowInsecure=1#TROJAN-HU-${username}"
+    trojan_hu_ntls_link="trojan://${uuid}@${public_host}:80?type=httpupgrade&security=none&host=${public_host}&path=%2Ftrojan-hu#TROJAN-HU-NTLS-${username}"
+
+    ss_userinfo_b64="$(printf '%s' "aes-128-gcm:${uuid}" | base64 | tr -d '\n')"
+    ss_plugin_opts="v2ray-plugin%3Bmode%3Dwebsocket%3Btls%3Bhost%3D${public_host}%3Bpath%3D%2Fss-ws%3BallowInsecure%3D1"
+    ss_link="ss://${ss_userinfo_b64}@${public_host}:443/?plugin=${ss_plugin_opts}#SS-${username}"
+    ss_compat_link="ss://$(printf '%s' "aes-128-gcm:${uuid}@${public_host}:443" | base64 | tr -d '\n')/?plugin=${ss_plugin_opts}#SS-COMPAT-${username}"
+
+    echo ""
+    echo "VLESS Direct TLS:"
+    echo "$vless_direct_link"
+    echo "VLESS Config:"
+    echo "$vless_link"
+    echo "VLESS Non-TLS:"
+    echo "$vless_ntls_link"
+    echo "VLESS HTTPUpgrade:"
+    echo "$vless_hu_link"
+    echo "VLESS HTTPUpgrade Non-TLS:"
+    echo "$vless_hu_ntls_link"
+
+    echo ""
+    echo "VMESS Config:"
+    echo "$vmess_link"
+    echo "VMESS Non-TLS:"
+    echo "$vmess_ntls_link"
+    echo "VMESS HTTPUpgrade:"
+    echo "$vmess_hu_link"
+    echo "VMESS HTTPUpgrade Non-TLS:"
+    echo "$vmess_hu_ntls_link"
+
+    echo ""
+    echo "TROJAN Config:"
+    echo "$trojan_link"
+    echo "TROJAN Non-TLS:"
+    echo "$trojan_ntls_link"
+    echo "TROJAN HTTPUpgrade:"
+    echo "$trojan_hu_link"
+    echo "TROJAN HTTPUpgrade Non-TLS:"
+    echo "$trojan_hu_ntls_link"
+
+    echo ""
+    echo "SHADOWSOCKS Config:"
+    echo "$ss_link"
+    echo "SHADOWSOCKS Compat Config:"
+    echo "$ss_compat_link"
+}
+
 list_xray_users() {
     if [ ! -f "$XRAY_CONFIG" ] || ! command -v jq >/dev/null 2>&1; then
         return 0
@@ -395,6 +534,10 @@ create_user() {
         echo "Username : $username"
         echo "Expiry : $expiry"
         echo "Xray UUID : $xray_uuid"
+    fi
+
+    if [ "$xray_created" -eq 1 ]; then
+        print_xray_client_links "$username" "$xray_uuid" "${domain:-$ip_host}"
     fi
 
     if [ "$ssh_created" -ne 1 ] || [ "$xray_created" -ne 1 ]; then
