@@ -1062,6 +1062,4 @@ main "$@"
 
 echo "Installation Completed"
 
-rm -rf /root/*
-apt autoremove -y
 reboot
